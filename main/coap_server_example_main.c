@@ -82,7 +82,17 @@ extern uint8_t server_key_start[] asm("_binary_coap_server_key_start");
 extern uint8_t server_key_end[]   asm("_binary_coap_server_key_end");
 #endif /* CONFIG_COAP_MBEDTLS_PKI */
 
-#define INITIAL_DATA "Hello World!"
+#define INITIAL_DATA    "Hello World!"
+#define SHOELACE_TIE    "Tier"
+#define SHOELACE_Untie  "Untie"
+
+#define LEDCOLOR_BLACK  (0x000000u)
+#define LEDCOLOR_WHITE  (0xFFFFFFu)  
+
+#define STEPS_DEFAULT   (0u)
+#define SIZE_DEFAULT    (20u)
+#define NAME_DEFAULT    "No name"
+
 
 /*
  * The resource handler
@@ -182,6 +192,11 @@ static void coap_example_server(void *p)
     coap_context_t *ctx = NULL;
     coap_address_t serv_addr;
     coap_resource_t *resource = NULL;
+    coap_resource_t *resource_shoelace = NULL;
+    coap_resource_t *resource_ledcolor = NULL;
+    coap_resource_t *resource_steps = NULL;
+    coap_resource_t *resource_size = NULL;
+    coap_resource_t *resource_name = NULL;
 
     snprintf(espressif_data, sizeof(espressif_data), INITIAL_DATA);
     espressif_data_len = strlen(espressif_data);
@@ -308,12 +323,65 @@ static void coap_example_server(void *p)
             ESP_LOGE(TAG, "coap_resource_init() failed");
             goto clean_up;
         }
+        /**Here we init the resources*/
+        resource_shoelace = coap_resource_init(coap_make_str_const("shoe/shoelace"), 0);
+        if (!resource) {
+            ESP_LOGE(TAG, "coap_resource_init() failed");
+            goto clean_up;
+        }
+        resource_ledcolor = coap_resource_init(coap_make_str_const("shoe/ledcolor"), 0);
+        if (!resource) {
+            ESP_LOGE(TAG, "coap_resource_init() failed");
+            goto clean_up;
+        }
+        resource_steps = coap_resource_init(coap_make_str_const("shoe/steps"), 0);
+        if (!resource) {
+            ESP_LOGE(TAG, "coap_resource_init() failed");
+            goto clean_up;
+        }
+        resource_size = coap_resource_init(coap_make_str_const("shoe/size"), 0);
+        if (!resource) {
+            ESP_LOGE(TAG, "coap_resource_init() failed");
+            goto clean_up;
+        }
+        resource_name = coap_resource_init(coap_make_str_const("shoe/name"), 0);
+        if (!resource) {
+            ESP_LOGE(TAG, "coap_resource_init() failed");
+            goto clean_up;
+        }
+        /**TODO, create new handlers*/
         coap_register_handler(resource, COAP_REQUEST_GET, hnd_espressif_get);
         coap_register_handler(resource, COAP_REQUEST_PUT, hnd_espressif_put);
         coap_register_handler(resource, COAP_REQUEST_DELETE, hnd_espressif_delete);
+        /**Methods for shoelace*/
+        coap_register_handler(resource_shoelace, COAP_REQUEST_PUT, hnd_espressif_put);
+        coap_register_handler(resource_shoelace, COAP_REQUEST_GET, hnd_espressif_get);
+        /**Methods for color*/
+        coap_register_handler(resource_color, COAP_REQUEST_PUT, hnd_espressif_put);
+        coap_register_handler(resource_color, COAP_REQUEST_GET, hnd_espressif_get);
+        coap_register_handler(resource_color, COAP_REQUEST_DELETE, hnd_espressif_delete);
+        /**Methods for steps*/
+        coap_register_handler(resource_steps, COAP_REQUEST_GET, hnd_espressif_get);
+        /**Methods for name*/
+        coap_register_handler(resource_name, COAP_REQUEST_PUT, hnd_espressif_put);
+        coap_register_handler(resource_name, COAP_REQUEST_GET, hnd_espressif_get);
+        coap_register_handler(resource_name, COAP_REQUEST_DELETE, hnd_espressif_delete);
+
         /* We possibly want to Observe the GETs */
         coap_resource_set_get_observable(resource, 1);
         coap_add_resource(ctx, resource);
+        /* We possibly want to Observe the GETs */
+        coap_resource_set_get_observable(resource_shoelace, 1);
+        coap_add_resource(ctx, resource_shoelace);
+        /* We possibly want to Observe the GETs */
+        coap_resource_set_get_observable(resource_color, 1);
+        coap_add_resource(ctx, resource_color);
+        /* We possibly want to Observe the GETs */
+        coap_resource_set_get_observable(resource_steps, 1);
+        coap_add_resource(ctx, resource_steps);
+        /* We possibly want to Observe the GETs */
+        coap_resource_set_get_observable(resource_name, 1);
+        coap_add_resource(ctx, resource_name);
 
 #if defined(CONFIG_EXAMPLE_COAP_MCAST_IPV4) || defined(CONFIG_EXAMPLE_COAP_MCAST_IPV6)
         esp_netif_t *netif = NULL;
