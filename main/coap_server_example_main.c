@@ -222,7 +222,7 @@ static void coap_example_server(void *p)
     xTimer_Steps = xTimerCreate("TimerSteps", 10000 / portTICK_PERIOD_MS, pdTRUE, (void*)0, xtimer_step_callback);
     if(xTimer_Steps == NULL)
     {
-    	ESP_LOGE(xTimer_Steps, "Error Creating Timer\r\n");
+    	//ESP_LOGE(xTimer_Steps, "Error Creating Timer\r\n");
     }
 
     xTimerStart(xTimer_Steps,0);
