@@ -56,10 +56,24 @@
 */
 #define EXAMPLE_COAP_LOG_DEFAULT_LEVEL CONFIG_COAP_LOG_DEFAULT_LEVEL
 
+void xtimer_step_callback(TimerHandle_t pxTimer);
+
 const static char *TAG = "CoAP_server";
 
 static char espressif_data[100];
+static char g_shoelace_data[5];
+static char g_ledcolor_data[8];
+static char g_steps_data[5];
+static char g_name_data[20]; 
+uint32_t    g_steps_int = 0;
+
 static int espressif_data_len = 0;
+static int g_shoelace_data_len = 0;
+static int g_ledcolor_data_len = 0;
+static int g_steps_data_len = 0;
+static int g_name_data_len = 0;
+
+TimerHandle_t xTimer_Steps;
 
 #ifdef CONFIG_COAP_MBEDTLS_PKI
 /* CA cert, taken from coap_ca.pem
@@ -83,7 +97,7 @@ extern uint8_t server_key_end[]   asm("_binary_coap_server_key_end");
 #endif /* CONFIG_COAP_MBEDTLS_PKI */
 
 #define INITIAL_DATA    "Hello World!"
-#define SHOELACE_TIE    "Tier"
+#define SHOELACE_TIE    "Tie"
 #define SHOELACE_Untie  "Untie"
 
 #define LEDCOLOR_BLACK  (0x000000u)
@@ -203,6 +217,15 @@ static void coap_example_server(void *p)
     coap_set_log_handler(coap_log_handler);
     coap_set_log_level(EXAMPLE_COAP_LOG_DEFAULT_LEVEL);
 
+    /**Creates timer for steps*/
+    /*Create Timer*/
+    xTimer_Steps = xTimerCreate("TimerSteps", 10000 / portTICK_PERIOD_MS, pdTRUE, (void*)0, xtimer_step_callback);
+    if(xTimer_Steps == NULL)
+    {
+    	ESP_LOGE(xTimer_Steps, "Error Creating Timer\r\n");
+    }
+
+    xTimerStart(xTimer_Steps,0);
     while (1) {
         coap_endpoint_t *ep = NULL;
         unsigned wait_ms;
@@ -357,9 +380,9 @@ static void coap_example_server(void *p)
         coap_register_handler(resource_shoelace, COAP_REQUEST_PUT, hnd_espressif_put);
         coap_register_handler(resource_shoelace, COAP_REQUEST_GET, hnd_espressif_get);
         /**Methods for color*/
-        coap_register_handler(resource_color, COAP_REQUEST_PUT, hnd_espressif_put);
-        coap_register_handler(resource_color, COAP_REQUEST_GET, hnd_espressif_get);
-        coap_register_handler(resource_color, COAP_REQUEST_DELETE, hnd_espressif_delete);
+        coap_register_handler(resource_ledcolor, COAP_REQUEST_PUT, hnd_espressif_put);
+        coap_register_handler(resource_ledcolor, COAP_REQUEST_GET, hnd_espressif_get);
+        coap_register_handler(resource_ledcolor, COAP_REQUEST_DELETE, hnd_espressif_delete);
         /**Methods for steps*/
         coap_register_handler(resource_steps, COAP_REQUEST_GET, hnd_espressif_get);
         /**Methods for name*/
@@ -374,8 +397,8 @@ static void coap_example_server(void *p)
         coap_resource_set_get_observable(resource_shoelace, 1);
         coap_add_resource(ctx, resource_shoelace);
         /* We possibly want to Observe the GETs */
-        coap_resource_set_get_observable(resource_color, 1);
-        coap_add_resource(ctx, resource_color);
+        coap_resource_set_get_observable(resource_ledcolor, 1);
+        coap_add_resource(ctx, resource_ledcolor);
         /* We possibly want to Observe the GETs */
         coap_resource_set_get_observable(resource_steps, 1);
         coap_add_resource(ctx, resource_steps);
@@ -435,4 +458,13 @@ void app_main(void)
     ESP_ERROR_CHECK(example_connect());
 
     xTaskCreate(coap_example_server, "coap", 8 * 1024, NULL, 5, NULL);
+}
+
+void xtimer_step_callback(TimerHandle_t pxTimer)
+{
+    g_steps_int++;
+    if(g_steps_int == (0xFFFFFFFF)) //If step counter overflows
+    {
+       g_steps_int = 0; 
+    }
 }
