@@ -4,6 +4,8 @@
   "idf.flashType": "UART",
   "idf.adapterTargetName": "esp32",
   "files.associations": {
-    "coap.h": "c"
+    "coap.h": "c",
+    "event_groups.h": "c",
+    "socket.h": "c"
   }
 }

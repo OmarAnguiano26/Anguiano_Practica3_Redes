@@ -982,3 +982,5 @@
 7916	8144	7202495944965710	C:/Users/Omar_PC/Documents/ESP32_Projects/coap_server/build/.bin_timestamp	d1651c289de17dcc
 8144	8216	0	esp-idf/esptool_py/CMakeFiles/app_check_size	effb5901fcec687
 8144	8216	0	C:/Users/Omar_PC/Documents/ESP32_Projects/coap_server/build/esp-idf/esptool_py/CMakeFiles/app_check_size	effb5901fcec687
+0	19421159	0	CMakeFiles/confserver	bd13a09f3165fc49
+0	19421159	0	C:/Users/Omar_PC/Documents/ESP32_Projects/coap_server/build/CMakeFiles/confserver	bd13a09f3165fc49

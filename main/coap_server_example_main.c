@@ -30,6 +30,7 @@
 #include "protocol_examples_common.h"
 
 #include "coap3/coap.h"
+#include "led_strip.h"
 
 #ifndef CONFIG_COAP_SERVER_SUPPORT
 #error COAP_SERVER_SUPPORT needs to be enabled
@@ -59,6 +60,8 @@
 void xtimer_step_callback(TimerHandle_t pxTimer);
 
 const static char *TAG = "CoAP_server";
+
+static led_strip_handle_t led_strip;
 
 static char espressif_data[100];
 static char g_shoelace_data[5];
@@ -126,6 +129,62 @@ hnd_espressif_get(coap_resource_t *resource,
                                  NULL, NULL);
 }
 
+static void hnd_shoelace_get(coap_resource_t *resource,
+                  coap_session_t *session,
+                  const coap_pdu_t *request,
+                  const coap_string_t *query,
+                  coap_pdu_t *response)
+{
+    coap_pdu_set_code(response, COAP_RESPONSE_CODE_CONTENT);
+    coap_add_data_large_response(resource, session, request, response,
+                                 query, COAP_MEDIATYPE_TEXT_PLAIN, 60, 0,
+                                 (size_t)g_shoelace_data_len,
+                                 (const u_char *)g_shoelace_data,
+                                 NULL, NULL);
+}
+
+static void hnd_ledcolor_get(coap_resource_t *resource,
+                  coap_session_t *session,
+                  const coap_pdu_t *request,
+                  const coap_string_t *query,
+                  coap_pdu_t *response)
+{
+    coap_pdu_set_code(response, COAP_RESPONSE_CODE_CONTENT);
+    coap_add_data_large_response(resource, session, request, response,
+                                 query, COAP_MEDIATYPE_TEXT_PLAIN, 60, 0,
+                                 (size_t)g_ledcolor_data_len,
+                                 (const u_char *)g_ledcolor_data,
+                                 NULL, NULL);
+}
+
+static void hnd_steps_get(coap_resource_t *resource,
+                  coap_session_t *session,
+                  const coap_pdu_t *request,
+                  const coap_string_t *query,
+                  coap_pdu_t *response)
+{
+    coap_pdu_set_code(response, COAP_RESPONSE_CODE_CONTENT);
+    coap_add_data_large_response(resource, session, request, response,
+                                 query, COAP_MEDIATYPE_TEXT_PLAIN, 60, 0,
+                                 (size_t)g_steps_data_len,
+                                 (const u_char *)g_steps_data,
+                                 NULL, NULL);
+}
+
+static void hnd_name_get(coap_resource_t *resource,
+                  coap_session_t *session,
+                  const coap_pdu_t *request,
+                  const coap_string_t *query,
+                  coap_pdu_t *response)
+{
+    coap_pdu_set_code(response, COAP_RESPONSE_CODE_CONTENT);
+    coap_add_data_large_response(resource, session, request, response,
+                                 query, COAP_MEDIATYPE_TEXT_PLAIN, 60, 0,
+                                 (size_t)g_name_data_len,
+                                 (const u_char *)g_name_data,
+                                 NULL, NULL);
+}
+
 static void
 hnd_espressif_put(coap_resource_t *resource,
                   coap_session_t *session,
@@ -157,6 +216,39 @@ hnd_espressif_put(coap_resource_t *resource,
         memcpy (espressif_data, data, espressif_data_len);
     }
 }
+
+static void
+hnd_shoelace_put(coap_resource_t *resource,
+                  coap_session_t *session,
+                  const coap_pdu_t *request,
+                  const coap_string_t *query,
+                  coap_pdu_t *response)
+{
+    size_t size;
+    size_t offset;
+    size_t total;
+    const unsigned char *data;
+
+    coap_resource_notify_observers(resource, NULL);
+
+    if (strcmp (g_shoelace_data, "untie") == 0) {
+        coap_pdu_set_code(response, COAP_RESPONSE_CODE_CREATED);
+    } else {
+        coap_pdu_set_code(response, COAP_RESPONSE_CODE_CHANGED);
+    }
+
+    /* coap_get_data_large() sets size to 0 on error */
+    (void)coap_get_data_large(request, &size, &data, &offset, &total);
+
+    if (size == 0) {      /* re-init */
+        snprintf(g_shoelace_data, sizeof(g_shoelace_data), "untie");
+        espressif_data_len = strlen(g_shoelace_data);
+    } else {
+        g_shoelace_data_len = size > sizeof (g_shoelace_data) ? sizeof (g_shoelace_data) : size;
+        memcpy (g_shoelace_data, data, g_shoelace_data_len);
+    }
+}
+
 
 static void
 hnd_espressif_delete(coap_resource_t *resource,
