@@ -30,7 +30,7 @@
 #include "protocol_examples_common.h"
 
 #include "coap3/coap.h"
-#include "led_strip.h"
+#include "string.h"
 
 #ifndef CONFIG_COAP_SERVER_SUPPORT
 #error COAP_SERVER_SUPPORT needs to be enabled
@@ -61,19 +61,21 @@ void xtimer_step_callback(TimerHandle_t pxTimer);
 
 const static char *TAG = "CoAP_server";
 
-static led_strip_handle_t led_strip;
+//static led_strip_handle_t led_strip;
 
 static char espressif_data[100];
-static char g_shoelace_data[5];
+static char g_shoelace_data[6];
 static char g_ledcolor_data[8];
-static char g_steps_data[5];
+static char g_steps_data[50];
 static char g_name_data[20]; 
-uint32_t    g_steps_int = 0;
+static char g_size_data[20]; 
+int    g_steps_int = 0;
 
 static int espressif_data_len = 0;
 static int g_shoelace_data_len = 0;
 static int g_ledcolor_data_len = 0;
 static int g_steps_data_len = 0;
+static int g_size_data_len = 0;
 static int g_name_data_len = 0;
 
 TimerHandle_t xTimer_Steps;
@@ -101,13 +103,13 @@ extern uint8_t server_key_end[]   asm("_binary_coap_server_key_end");
 
 #define INITIAL_DATA    "Hello World!"
 #define SHOELACE_TIE    "Tie"
-#define SHOELACE_Untie  "Untie"
+#define SHOELACE_UNTIE  "Untie"
 
-#define LEDCOLOR_BLACK  (0x000000u)
-#define LEDCOLOR_WHITE  (0xFFFFFFu)  
+#define LEDCOLOR_BLACK  "000000"
+#define LEDCOLOR_WHITE  "FFFFFF"  
 
-#define STEPS_DEFAULT   (0u)
-#define SIZE_DEFAULT    (20u)
+#define STEPS_DEFAULT   "000"
+#define SIZE_DEFAULT    "20"
 #define NAME_DEFAULT    "No name"
 
 
@@ -171,6 +173,20 @@ static void hnd_steps_get(coap_resource_t *resource,
                                  NULL, NULL);
 }
 
+static void hnd_size_get(coap_resource_t *resource,
+                  coap_session_t *session,
+                  const coap_pdu_t *request,
+                  const coap_string_t *query,
+                  coap_pdu_t *response)
+{
+    coap_pdu_set_code(response, COAP_RESPONSE_CODE_CONTENT);
+    coap_add_data_large_response(resource, session, request, response,
+                                 query, COAP_MEDIATYPE_TEXT_PLAIN, 60, 0,
+                                 (size_t)g_size_data_len,
+                                 (const u_char *)g_size_data,
+                                 NULL, NULL);
+}
+
 static void hnd_name_get(coap_resource_t *resource,
                   coap_session_t *session,
                   const coap_pdu_t *request,
@@ -217,8 +233,7 @@ hnd_espressif_put(coap_resource_t *resource,
     }
 }
 
-static void
-hnd_shoelace_put(coap_resource_t *resource,
+static void hnd_shoelace_put(coap_resource_t *resource,
                   coap_session_t *session,
                   const coap_pdu_t *request,
                   const coap_string_t *query,
@@ -231,7 +246,7 @@ hnd_shoelace_put(coap_resource_t *resource,
 
     coap_resource_notify_observers(resource, NULL);
 
-    if (strcmp (g_shoelace_data, "untie") == 0) {
+    if (strcmp (g_shoelace_data, "Untie") == 0) {
         coap_pdu_set_code(response, COAP_RESPONSE_CODE_CREATED);
     } else {
         coap_pdu_set_code(response, COAP_RESPONSE_CODE_CHANGED);
@@ -241,13 +256,76 @@ hnd_shoelace_put(coap_resource_t *resource,
     (void)coap_get_data_large(request, &size, &data, &offset, &total);
 
     if (size == 0) {      /* re-init */
-        snprintf(g_shoelace_data, sizeof(g_shoelace_data), "untie");
-        espressif_data_len = strlen(g_shoelace_data);
+        snprintf(g_shoelace_data, sizeof(g_shoelace_data), "Untie");
+        g_shoelace_data_len = strlen(g_shoelace_data);
     } else {
         g_shoelace_data_len = size > sizeof (g_shoelace_data) ? sizeof (g_shoelace_data) : size;
         memcpy (g_shoelace_data, data, g_shoelace_data_len);
     }
 }
+
+static void hnd_ledcolor_put(coap_resource_t *resource,
+                  coap_session_t *session,
+                  const coap_pdu_t *request,
+                  const coap_string_t *query,
+                  coap_pdu_t *response)
+{
+    size_t size;
+    size_t offset;
+    size_t total;
+    const unsigned char *data;
+
+    coap_resource_notify_observers(resource, NULL);
+
+    if (strcmp (g_ledcolor_data, "000000") == 0) {
+        coap_pdu_set_code(response, COAP_RESPONSE_CODE_CREATED);
+    } else {
+        coap_pdu_set_code(response, COAP_RESPONSE_CODE_CHANGED);
+    }
+
+    /* coap_get_data_large() sets size to 0 on error */
+    (void)coap_get_data_large(request, &size, &data, &offset, &total);
+
+    if (size == 0) {      /* re-init */
+        snprintf(g_ledcolor_data, sizeof(g_ledcolor_data), "000000");
+        g_ledcolor_data_len = strlen(g_ledcolor_data);
+    } else {
+        g_ledcolor_data_len = size > sizeof (g_ledcolor_data) ? sizeof (g_ledcolor_data) : size;
+        memcpy (g_ledcolor_data, data, g_ledcolor_data_len);
+    }
+}
+
+static void hnd_name_put(coap_resource_t *resource,
+                  coap_session_t *session,
+                  const coap_pdu_t *request,
+                  const coap_string_t *query,
+                  coap_pdu_t *response)
+{
+    size_t size;
+    size_t offset;
+    size_t total;
+    const unsigned char *data;
+
+    coap_resource_notify_observers(resource, NULL);
+
+    if (strcmp (g_name_data, "No name") == 0) {
+        coap_pdu_set_code(response, COAP_RESPONSE_CODE_CREATED);
+    } else {
+        coap_pdu_set_code(response, COAP_RESPONSE_CODE_CHANGED);
+    }
+
+    /* coap_get_data_large() sets size to 0 on error */
+    (void)coap_get_data_large(request, &size, &data, &offset, &total);
+
+    if (size == 0) {      /* re-init */
+        snprintf(g_name_data, sizeof(g_name_data), "No name");
+        g_name_data_len = strlen(g_name_data);
+    } else {
+        g_name_data_len = size > sizeof (g_name_data) ? sizeof (g_name_data) : size;
+        memcpy (g_name_data, data, g_name_data_len);
+    }
+}
+
 
 
 static void
@@ -260,6 +338,30 @@ hnd_espressif_delete(coap_resource_t *resource,
     coap_resource_notify_observers(resource, NULL);
     snprintf(espressif_data, sizeof(espressif_data), INITIAL_DATA);
     espressif_data_len = strlen(espressif_data);
+    coap_pdu_set_code(response, COAP_RESPONSE_CODE_DELETED);
+}
+
+static void hnd_ledcolor_delete(coap_resource_t *resource,
+                     coap_session_t *session,
+                     const coap_pdu_t *request,
+                     const coap_string_t *query,
+                     coap_pdu_t *response)
+{
+    coap_resource_notify_observers(resource, NULL);
+    snprintf(g_ledcolor_data, sizeof(g_ledcolor_data), "000000");
+    g_ledcolor_data_len = strlen(g_ledcolor_data);
+    coap_pdu_set_code(response, COAP_RESPONSE_CODE_DELETED);
+}
+
+static void hnd_name_delete(coap_resource_t *resource,
+                     coap_session_t *session,
+                     const coap_pdu_t *request,
+                     const coap_string_t *query,
+                     coap_pdu_t *response)
+{
+    coap_resource_notify_observers(resource, NULL);
+    snprintf(g_name_data, sizeof(g_name_data), "No name");
+    g_name_data_len = strlen(g_name_data);
     coap_pdu_set_code(response, COAP_RESPONSE_CODE_DELETED);
 }
 
@@ -303,12 +405,29 @@ static void coap_example_server(void *p)
     coap_resource_t *resource_steps = NULL;
     coap_resource_t *resource_size = NULL;
     coap_resource_t *resource_name = NULL;
-
+    /**Inits variables*/
     snprintf(espressif_data, sizeof(espressif_data), INITIAL_DATA);
     espressif_data_len = strlen(espressif_data);
+    snprintf(g_shoelace_data, sizeof(g_shoelace_data), SHOELACE_UNTIE);
+    g_shoelace_data_len = strlen(g_shoelace_data);
+
+    snprintf(g_ledcolor_data, sizeof(g_ledcolor_data), LEDCOLOR_BLACK);
+    g_ledcolor_data_len = strlen(g_ledcolor_data);
+
+    /**Converts int to string*/
+    snprintf(g_steps_data, sizeof(g_steps_data), STEPS_DEFAULT);
+    g_steps_data_len = strlen(g_steps_data);
+
+    snprintf(g_size_data, sizeof(g_size_data), SIZE_DEFAULT);
+    g_size_data_len = strlen(g_size_data);
+
+    snprintf(g_name_data, sizeof(g_name_data), NAME_DEFAULT);
+    g_name_data_len = strlen(g_name_data);
+
+
+    /**Inits variables*/
     coap_set_log_handler(coap_log_handler);
     coap_set_log_level(EXAMPLE_COAP_LOG_DEFAULT_LEVEL);
-
     /**Creates timer for steps*/
     /*Create Timer*/
     xTimer_Steps = xTimerCreate("TimerSteps", 10000 / portTICK_PERIOD_MS, pdTRUE, (void*)0, xtimer_step_callback);
@@ -469,18 +588,20 @@ static void coap_example_server(void *p)
         coap_register_handler(resource, COAP_REQUEST_PUT, hnd_espressif_put);
         coap_register_handler(resource, COAP_REQUEST_DELETE, hnd_espressif_delete);
         /**Methods for shoelace*/
-        coap_register_handler(resource_shoelace, COAP_REQUEST_PUT, hnd_espressif_put);
-        coap_register_handler(resource_shoelace, COAP_REQUEST_GET, hnd_espressif_get);
+        coap_register_handler(resource_shoelace, COAP_REQUEST_PUT, hnd_shoelace_put);
+        coap_register_handler(resource_shoelace, COAP_REQUEST_GET, hnd_shoelace_get);
         /**Methods for color*/
-        coap_register_handler(resource_ledcolor, COAP_REQUEST_PUT, hnd_espressif_put);
-        coap_register_handler(resource_ledcolor, COAP_REQUEST_GET, hnd_espressif_get);
-        coap_register_handler(resource_ledcolor, COAP_REQUEST_DELETE, hnd_espressif_delete);
+        coap_register_handler(resource_ledcolor, COAP_REQUEST_PUT, hnd_ledcolor_put);
+        coap_register_handler(resource_ledcolor, COAP_REQUEST_GET, hnd_ledcolor_get);
+        coap_register_handler(resource_ledcolor, COAP_REQUEST_DELETE, hnd_ledcolor_delete);
         /**Methods for steps*/
-        coap_register_handler(resource_steps, COAP_REQUEST_GET, hnd_espressif_get);
+        coap_register_handler(resource_steps, COAP_REQUEST_GET, hnd_steps_get);
+        /**Methods for size*/
+        coap_register_handler(resource_size, COAP_REQUEST_GET, hnd_size_get);
         /**Methods for name*/
-        coap_register_handler(resource_name, COAP_REQUEST_PUT, hnd_espressif_put);
-        coap_register_handler(resource_name, COAP_REQUEST_GET, hnd_espressif_get);
-        coap_register_handler(resource_name, COAP_REQUEST_DELETE, hnd_espressif_delete);
+        coap_register_handler(resource_name, COAP_REQUEST_PUT, hnd_name_put);
+        coap_register_handler(resource_name, COAP_REQUEST_GET, hnd_name_get);
+        coap_register_handler(resource_name, COAP_REQUEST_DELETE, hnd_name_delete);
 
         /* We possibly want to Observe the GETs */
         coap_resource_set_get_observable(resource, 1);
@@ -494,6 +615,9 @@ static void coap_example_server(void *p)
         /* We possibly want to Observe the GETs */
         coap_resource_set_get_observable(resource_steps, 1);
         coap_add_resource(ctx, resource_steps);
+        /* We possibly want to Observe the GETs */
+        coap_resource_set_get_observable(resource_size, 1);
+        coap_add_resource(ctx, resource_size);
         /* We possibly want to Observe the GETs */
         coap_resource_set_get_observable(resource_name, 1);
         coap_add_resource(ctx, resource_name);
@@ -559,4 +683,7 @@ void xtimer_step_callback(TimerHandle_t pxTimer)
     {
        g_steps_int = 0; 
     }
+    /**Converts int to string*/
+    sprintf(g_steps_data, "%d", g_steps_int);
+	//g_steps_data = &g_steps_int;
 }
