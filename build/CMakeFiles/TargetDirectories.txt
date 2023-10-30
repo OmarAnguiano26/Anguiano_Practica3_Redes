@@ -607,6 +607,13 @@ C:/Users/Omar_PC/Documents/ESP32_Projects/coap_server/build/esp-idf/espressif__c
 C:/Users/Omar_PC/Documents/ESP32_Projects/coap_server/build/esp-idf/espressif__coap/CMakeFiles/install.dir
 C:/Users/Omar_PC/Documents/ESP32_Projects/coap_server/build/esp-idf/espressif__coap/CMakeFiles/install/local.dir
 C:/Users/Omar_PC/Documents/ESP32_Projects/coap_server/build/esp-idf/espressif__coap/CMakeFiles/install/strip.dir
+C:/Users/Omar_PC/Documents/ESP32_Projects/coap_server/build/esp-idf/espressif__mdns/CMakeFiles/__idf_espressif__mdns.dir
+C:/Users/Omar_PC/Documents/ESP32_Projects/coap_server/build/esp-idf/espressif__mdns/CMakeFiles/edit_cache.dir
+C:/Users/Omar_PC/Documents/ESP32_Projects/coap_server/build/esp-idf/espressif__mdns/CMakeFiles/rebuild_cache.dir
+C:/Users/Omar_PC/Documents/ESP32_Projects/coap_server/build/esp-idf/espressif__mdns/CMakeFiles/list_install_components.dir
+C:/Users/Omar_PC/Documents/ESP32_Projects/coap_server/build/esp-idf/espressif__mdns/CMakeFiles/install.dir
+C:/Users/Omar_PC/Documents/ESP32_Projects/coap_server/build/esp-idf/espressif__mdns/CMakeFiles/install/local.dir
+C:/Users/Omar_PC/Documents/ESP32_Projects/coap_server/build/esp-idf/espressif__mdns/CMakeFiles/install/strip.dir
 C:/Users/Omar_PC/Documents/ESP32_Projects/coap_server/build/esp-idf/main/CMakeFiles/__idf_main.dir
 C:/Users/Omar_PC/Documents/ESP32_Projects/coap_server/build/esp-idf/main/CMakeFiles/edit_cache.dir
 C:/Users/Omar_PC/Documents/ESP32_Projects/coap_server/build/esp-idf/main/CMakeFiles/rebuild_cache.dir

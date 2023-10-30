@@ -31,6 +31,9 @@
 
 #include "coap3/coap.h"
 #include "string.h"
+#include <mdns.h>
+#include <esp_local_ctrl.h>
+#include <esp_timer.h>
 
 #ifndef CONFIG_COAP_SERVER_SUPPORT
 #error COAP_SERVER_SUPPORT needs to be enabled
@@ -63,7 +66,7 @@ const static char *TAG = "CoAP_server";
 
 //static led_strip_handle_t led_strip;
 
-static char espressif_data[100];
+static char espressif_data[10];
 static char g_shoelace_data[6];
 static char g_ledcolor_data[8];
 static char g_steps_data[50];
@@ -101,7 +104,7 @@ extern uint8_t server_key_start[] asm("_binary_coap_server_key_start");
 extern uint8_t server_key_end[]   asm("_binary_coap_server_key_end");
 #endif /* CONFIG_COAP_MBEDTLS_PKI */
 
-#define INITIAL_DATA    "Hello World!"
+#define INITIAL_DATA    "Hello"
 #define SHOELACE_TIE    "Tie"
 #define SHOELACE_UNTIE  "Untie"
 
@@ -112,6 +115,127 @@ extern uint8_t server_key_end[]   asm("_binary_coap_server_key_end");
 #define SIZE_DEFAULT    "20"
 #define NAME_DEFAULT    "No name"
 
+//#define SERVICE_NAME "shoe_control._coap._udp.local."
+#define SERVICE_NAME "my_esp_ctrl_device"
+
+/* Custom allowed property types */
+enum property_types {
+    PROP_TYPE_TIMESTAMP = 0,
+    PROP_TYPE_INT32,
+    PROP_TYPE_BOOLEAN,
+    PROP_TYPE_STRING,
+};
+
+/* Custom flags that can be set for a property */
+enum property_flags {
+    PROP_FLAG_READONLY = (1 << 0)
+};
+
+/********* Handler functions for responding to control requests / commands *********/
+
+static esp_err_t get_property_values(size_t props_count,
+                                     const esp_local_ctrl_prop_t props[],
+                                     esp_local_ctrl_prop_val_t prop_values[],
+                                     void *usr_ctx)
+{
+    for (uint32_t i = 0; i < props_count; i++) {
+        ESP_LOGI(TAG, "Reading property : %s", props[i].name);
+        /* For the purpose of this example, to keep things simple
+         * we have set the context pointer of each property to
+         * point to its value (except for timestamp) */
+        switch (props[i].type) {
+            case PROP_TYPE_INT32:
+            case PROP_TYPE_BOOLEAN:
+                /* No need to set size for these types as sizes where
+                 * specified when declaring the properties, unlike for
+                 * string type. */
+                prop_values[i].data = props[i].ctx;
+                break;
+            case PROP_TYPE_TIMESTAMP: {
+                /* Get the time stamp */
+                static int64_t ts = 0;
+                ts = esp_timer_get_time();
+
+                /* Set the current time. Since this is statically
+                 * allocated, we don't need to provide a free_fn */
+                prop_values[i].data = &ts;
+                break;
+            }
+            case PROP_TYPE_STRING: {
+                char **prop3_value = (char **) props[i].ctx;
+                if (*prop3_value == NULL) {
+                    prop_values[i].size = 0;
+                    prop_values[i].data = NULL;
+                } else {
+                    /* We could try dynamically allocating the output value,
+                     * and it should get freed automatically after use, as
+                     * `esp_local_ctrl` internally calls the provided `free_fn` */
+                    prop_values[i].size = strlen(*prop3_value);
+                    prop_values[i].data = strdup(*prop3_value);
+                    if (!prop_values[i].data) {
+                        return ESP_ERR_NO_MEM;
+                    }
+                    prop_values[i].free_fn = free;
+                }
+            }
+            default:
+                break;
+        }
+    }
+    return ESP_OK;
+}
+
+static esp_err_t set_property_values(size_t props_count,
+                                     const esp_local_ctrl_prop_t props[],
+                                     const esp_local_ctrl_prop_val_t prop_values[],
+                                     void *usr_ctx)
+{
+    for (uint32_t i = 0; i < props_count; i++) {
+        /* Cannot set the value of a read-only property */
+        if (props[i].flags & PROP_FLAG_READONLY) {
+            ESP_LOGE(TAG, "%s is read-only", props[i].name);
+            return ESP_ERR_INVALID_ARG;
+        }
+        /* For the purpose of this example, to keep things simple
+         * we have set the context pointer of each property to
+         * point to its value (except for timestamp) */
+        switch (props[i].type) {
+            case PROP_TYPE_STRING: {
+                    /* Free the previously set string */
+                    char **prop3_value = (char **) props[i].ctx;
+                    free(*prop3_value);
+                    *prop3_value = NULL;
+
+                    /* Copy the input string */
+                    if (prop_values[i].size) {
+                        *prop3_value = strndup((const char *)prop_values[i].data, prop_values[i].size);
+                        if (*prop3_value == NULL) {
+                            return ESP_ERR_NO_MEM;
+                        }
+                        ESP_LOGI(TAG, "Setting %s value to %s", props[i].name, (const char*)*prop3_value);
+                    }
+                }
+                break;
+            case PROP_TYPE_INT32: {
+                    const int32_t *new_value = (const int32_t *) prop_values[i].data;
+                    ESP_LOGI(TAG, "Setting %s value to %" PRId32, props[i].name, *new_value);
+                    memcpy(props[i].ctx, new_value, sizeof(int32_t));
+                }
+                break;
+            case PROP_TYPE_BOOLEAN: {
+                    const bool *value = (const bool *) prop_values[i].data;
+                    ESP_LOGI(TAG, "Setting %s value to %d", props[i].name, *value);
+                    memcpy(props[i].ctx, value, sizeof(bool));
+                }
+                break;
+            default:
+                break;
+        }
+    }
+    return ESP_OK;
+}
+
+/******************************************************************************/
 
 /*
  * The resource handler
@@ -435,6 +559,33 @@ static void coap_example_server(void *p)
     {
     	//ESP_LOGE(xTimer_Steps, "Error Creating Timer\r\n");
     }
+    httpd_config_t http_conf = HTTPD_DEFAULT_CONFIG();
+    const void *sec_params = NULL;
+    esp_local_ctrl_config_t config = {
+        .transport = esp_local_ctrl_get_transport_httpd(),
+        .transport_config = { .httpd = &http_conf,
+        },
+        .proto_sec = {
+            .version = 0,
+            .custom_handle = NULL,
+            .sec_params = &sec_params,
+        },
+        .handlers = {
+            /* User defined handler functions */
+            .get_prop_values = get_property_values,
+            .set_prop_values = set_property_values,
+            .usr_ctx         = NULL,
+            .usr_ctx_free_fn = NULL
+        },
+        /* Maximum number of properties that may be set */
+        .max_properties = 10
+    };    
+
+    mdns_init();
+    mdns_hostname_set(SERVICE_NAME);
+    /* Start esp_local_ctrl service */
+    ESP_ERROR_CHECK(esp_local_ctrl_start(&config));
+    ESP_LOGI(TAG, "esp_local_ctrl service started with name : %s", SERVICE_NAME);
 
     xTimerStart(xTimer_Steps,0);
     while (1) {

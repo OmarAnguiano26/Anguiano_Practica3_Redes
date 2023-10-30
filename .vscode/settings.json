@@ -6,6 +6,7 @@
   "files.associations": {
     "coap.h": "c",
     "event_groups.h": "c",
-    "socket.h": "c"
+    "socket.h": "c",
+    "freertos.h": "c"
   }
 }
