@@ -1,7 +1,7 @@
 {
     "version":            "1",
     "project_name":       "coap_server",
-    "project_version":    "53081fb-dirty",
+    "project_version":    "7dbef34-dirty",
     "project_path":       "C:/Users/Omar_PC/Documents/ESP32_Projects/coap_server",
     "idf_path":           "C:/Users/Omar_PC/esp/esp-idf",
     "build_dir":          "C:/Users/Omar_PC/Documents/ESP32_Projects/coap_server/build",

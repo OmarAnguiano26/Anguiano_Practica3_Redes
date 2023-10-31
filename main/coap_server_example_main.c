@@ -116,7 +116,7 @@ extern uint8_t server_key_end[]   asm("_binary_coap_server_key_end");
 #define NAME_DEFAULT    "No name"
 
 //#define SERVICE_NAME "shoe_control._coap._udp.local."
-#define SERVICE_NAME "my_esp_ctrl_device"
+#define SERVICE_NAME "shoe_control._coap._udp.local."
 
 /* Custom allowed property types */
 enum property_types {

@@ -59,7 +59,7 @@ if __name__ == "__main__":
   asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
   zeroconf = Zeroconf()
-  info = zeroconf.get_service_info("_coap._udp.local.","my_esp_ctrl_device.local.")
+  info = zeroconf.get_service_info("_coap._udp.local.", "shoe_control._coap._udp.local.")
 
   #if info:
     #print("Device found: {}".format(info))
@@ -92,7 +92,7 @@ if __name__ == "__main__":
   #Test Steps
     print("*** GET steps ***")
     asyncio.run(get(ESP32_IP, URI_steps))
-    time.sleep(5)
+    time.sleep(10)
     print("*** GET steps ***")
     asyncio.run(get(ESP32_IP, URI_steps))
   
