@@ -267,6 +267,7 @@ static void hnd_shoelace_get(coap_resource_t *resource,
                                  (size_t)g_shoelace_data_len,
                                  (const u_char *)g_shoelace_data,
                                  NULL, NULL);
+    printf("Shoelace get = %s\n", g_shoelace_data);
 }
 
 static void hnd_ledcolor_get(coap_resource_t *resource,
@@ -281,6 +282,7 @@ static void hnd_ledcolor_get(coap_resource_t *resource,
                                  (size_t)g_ledcolor_data_len,
                                  (const u_char *)g_ledcolor_data,
                                  NULL, NULL);
+    printf("LedColor get = %s\n", g_ledcolor_data);
 }
 
 static void hnd_steps_get(coap_resource_t *resource,
@@ -295,6 +297,7 @@ static void hnd_steps_get(coap_resource_t *resource,
                                  (size_t)g_steps_data_len,
                                  (const u_char *)g_steps_data,
                                  NULL, NULL);
+    printf("Steps get = %s\n", g_steps_data);
 }
 
 static void hnd_size_get(coap_resource_t *resource,
@@ -309,6 +312,7 @@ static void hnd_size_get(coap_resource_t *resource,
                                  (size_t)g_size_data_len,
                                  (const u_char *)g_size_data,
                                  NULL, NULL);
+     printf("Size get = %s\n", g_size_data);
 }
 
 static void hnd_name_get(coap_resource_t *resource,
@@ -323,6 +327,7 @@ static void hnd_name_get(coap_resource_t *resource,
                                  (size_t)g_name_data_len,
                                  (const u_char *)g_name_data,
                                  NULL, NULL);
+    printf("Name get = %s\n", g_name_data);
 }
 
 static void
